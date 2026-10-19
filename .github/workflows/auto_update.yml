@@ -1,0 +1,32 @@
+name: Auto Update M3U8 Playlist
+
+on:
+  schedule:
+    # প্রতি ১৫ মিনিট পরপর স্বয়ংক্রিয়ভাবে রান করবে
+    - cron: '*/15 * * * *'
+  workflow_dispatch: # ম্যানুয়ালি রান করার বোতাম দেবে
+
+jobs:
+  update-job:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+
+    - name: Setup Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+
+    - name: Run Python Update Script
+      run: |
+        python update.py
+
+    - name: Commit and Push Changes
+      run: |
+        git config --global user.name "github-actions[bot]"
+        git config --global user.email "github-actions[bot]@users.noreply.github.com"
+        git add playlist.m3u8
+        git commit -m "Auto-updated M3U8 playlist [skip ci]" || echo "No changes to commit"
+        git push
