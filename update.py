@@ -2,7 +2,6 @@ import os
 import requests
 from bs4 import BeautifulSoup
 
-# লক্ষ্য ওয়েবসাইট এবং রেফারার
 TARGET_URL = "https://pogo.pk/"
 REFERER_URL = "https://playerdee.top/"
 
@@ -20,25 +19,18 @@ def fetch_matches():
             return matches
 
         soup = BeautifulSoup(response.text, 'html.parser')
-
-        # নোটিশ: ওয়েবসাইটের গঠন অনুযায়ী নিচের সিলেক্টরগুলো পরিবর্তন করতে হতে পারে।
-        # এটি একটি জেনারেল স্ক্র্যাপিং স্ট্রাকচার।
-        
-        # উদাহরণস্বরূপ ওয়েবসাইটের ম্যাচ কার্ডগুলো খোঁজা:
-        match_cards = soup.find_all('div', class_='match-card') # ওয়েবসাইটের ক্লাস অনুযায়ী এটি বদলাতে হবে
+        match_cards = soup.find_all('div', class_='match-card')
         
         if not match_cards:
-            # যদি সরাসরি ক্লাস না মিলে, বিকল্প ট্যাগ চেক করা বা ডামি স্ট্রাকচার রাখা
-            print("No matches found via automated scraping. Please check HTML structure.")
+            print("No matches found via automated scraping. Using sample structure.")
             return matches
 
         for card in match_cards:
-            # ম্যাচ ডেটা এক্সট্রাক্ট করার লজিক
             home_team = card.find('span', class_='home-team').text.strip() if card.find('span', class_='home-team') else "Home Team"
             away_team = card.find('span', class_='away-team').text.strip() if card.find('span', class_='away-team') else "Away Team"
             m3u8_link = card.get('data-stream', 'https://example.com/stream.m3u8')
             category = card.find('div', class_='league-name').text.strip() if card.find('div', class_='league-name') else "Live Sports"
-            status = card.get('data-status', 'upcoming') # live অথবা upcoming
+            status = card.get('data-status', 'upcoming')
             start_time = card.find('span', class_='match-time').text.strip() if card.find('span', class_='match-time') else "Live Now"
 
             matches.append({
@@ -60,9 +52,7 @@ def fetch_matches():
 def generate_m3u8():
     matches = fetch_matches()
 
-    # যদি ওয়েবসাইট থেকে সরাসরি স্ক্র্যাপ করতে সমস্যা হয়, তবে ডিফল্ট টেমপ্লেট হিসেবে কাজ করবে
     if not matches:
-        print("Using fallback/sample match structure...")
         matches = [
             {
                 "status": "live",
@@ -79,7 +69,6 @@ def generate_m3u8():
     m3u8_content = "#EXTM3U\n"
     m3u8_content += "#EXT-X-VERSION:3\n\n"
 
-    # লাইভ ম্যাচ এবং আপকামিং ম্যাচ সাজানো
     live_matches = [m for m in matches if m.get("status") == "live"]
     upcoming_matches = [m for m in matches if m.get("status") != "live"]
     all_sorted_matches = live_matches + upcoming_matches
@@ -92,18 +81,12 @@ def generate_m3u8():
 
         category = match.get("category", "Sports")
 
-        # M3U8 ইনফরমেশন হেডার
         m3u8_content += f'#EXTINF:-1 group-title="{category}",{title}\n'
-
-        # হেডার ও রেফারার যুক্ত করা (প্লায়ারের জন্য)
         m3u8_content += f'#EXTVLCOPT:http-referrer={match["referer"]}\n'
         m3u8_content += f'#EXTVLCOPT:http-user-agent={match["user_agent"]}\n'
         m3u8_content += f'#EXTHTTP:{{"USER-AGENT":"{match["user_agent"]}","REFERER":"{match["referer"]}"}}\n'
-
-        # স্ট্রিম লিংক
         m3u8_content += f'{match["m3u8"]}\n\n'
 
-    # ফাইল সেভ করা
     with open("playlist.m3u8", "w", encoding="utf-8") as f:
         f.write(m3u8_content)
 
